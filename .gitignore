@@ -7,7 +7,6 @@ dist-preview/
 dist-flow-preview/
 packages/paperclip-runner/runner/target/
 ui/storybook-static/
-.env
 *.tsbuildinfo
 drizzle/meta/
 .vite/
@@ -48,7 +47,6 @@ diagnostics/
 
 # Editor / tool temp files
 *.tmp
-.vscode/
 .claude/settings.local.json
 .paperclip-local/
 .paperclip-runtime/
@@ -76,5 +74,9 @@ tests/storybook-visual/playwright-report/
 .claude/worktrees/
 .herenow
 .vercel/
-.env.local
 test-results/
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
+config.bat
