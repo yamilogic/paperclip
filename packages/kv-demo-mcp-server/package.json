@@ -37,9 +37,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "node init && tsc",
     "clean": "rm -rf dist",
-    "start": "node dist/main.js",
+    "start": "node init && node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
