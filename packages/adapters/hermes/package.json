@@ -88,8 +88,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "node init && tsc",
+    "dev": "node init && tsc --watch",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
