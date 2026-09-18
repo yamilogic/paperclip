@@ -84,6 +84,53 @@ describe("buildCodexLocalConfig", () => {
 
     expect(config).not.toHaveProperty("model");
   });
+
+  it("merges a PAPERCLIP_CODEX_PROVIDERS/NVIDIA_NIM_API_KEY env pair when NVIDIA NIM is selected", () => {
+    const config = buildCodexLocalConfig(
+      makeValues({
+        codexModelProvider: "nvidia_nim",
+        nvidiaNimApiKey: "nvapi-secret",
+        nvidiaNimModel: "meta/llama-3.3-70b-instruct",
+      }),
+    );
+
+    expect(config.model).toBe("meta/llama-3.3-70b-instruct");
+    const env = config.env as Record<string, { type: string; value: string }>;
+    expect(env.NVIDIA_NIM_API_KEY).toEqual({ type: "plain", value: "nvapi-secret" });
+    const providers = JSON.parse(env.PAPERCLIP_CODEX_PROVIDERS.value);
+    expect(providers).toMatchObject({
+      model_provider: "nvidia_nim",
+      providers: {
+        nvidia_nim: {
+          base_url: "https://integrate.api.nvidia.com/v1",
+          env_key: "NVIDIA_NIM_API_KEY",
+        },
+      },
+    });
+  });
+
+  it("falls back to the default NVIDIA NIM model when none is entered", () => {
+    const config = buildCodexLocalConfig(
+      makeValues({ codexModelProvider: "nvidia_nim", nvidiaNimApiKey: "nvapi-secret" }),
+    );
+
+    expect(config.model).toBe("meta/llama-3.3-70b-instruct");
+  });
+
+  it("ignores the NVIDIA NIM provider selection when no API key is entered", () => {
+    const config = buildCodexLocalConfig(
+      makeValues({ codexModelProvider: "nvidia_nim", model: "gpt-5.4" }),
+    );
+
+    expect(config).not.toHaveProperty("env");
+    expect(config.model).toBe("gpt-5.4");
+  });
+
+  it("leaves Codex on its default provider when codexModelProvider is unset", () => {
+    const config = buildCodexLocalConfig(makeValues());
+
+    expect(config).not.toHaveProperty("env");
+  });
 });
 
 describe("buildPaperclipRunnerConfig", () => {

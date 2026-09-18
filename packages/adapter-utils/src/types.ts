@@ -691,6 +691,10 @@ export interface CreateConfigValues {
   codexAcpNonInteractivePermissions?: "deny" | "fail";
   codexAcpStateDir?: string;
   codexAcpWarmHandleIdleMs?: number;
+  /** Custom OpenAI-compatible model provider for Codex, merged into config.toml via PAPERCLIP_CODEX_PROVIDERS. "default" leaves Codex on its normal OpenAI provider. */
+  codexModelProvider?: "default" | "nvidia_nim";
+  nvidiaNimApiKey?: string;
+  nvidiaNimModel?: string;
   geminiEngine?: "auto" | "cli" | "acp";
   geminiAcpAgentCommand?: string;
   geminiAcpMode?: "persistent" | "oneshot";
