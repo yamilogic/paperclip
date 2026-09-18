@@ -12,6 +12,39 @@ export const SANDBOX_INSTALL_COMMAND = "npm install -g @openai/codex";
 // Codex CLI warn ("Model metadata for `gpt-5.6` not found") and fall back to generic context limits.
 export const DEFAULT_CODEX_LOCAL_MODEL = PAPERCLIP_RUNNER_DEFAULT_MODELS.codex;
 export const DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX = true;
+
+// NVIDIA NIM is an OpenAI-compatible inference endpoint, not an agentic CLI of
+// its own. Wiring it in as a Codex model provider (rather than a standalone
+// adapter) lets Codex's existing file-editing/tool-use loop run against
+// NIM-hosted models, via the same PAPERCLIP_CODEX_PROVIDERS -> config.toml
+// [model_providers.*] merge codex-local already supports for any custom
+// OpenAI-compatible gateway (see server/runtime-config.ts).
+export const NVIDIA_NIM_BASE_URL = "https://integrate.api.nvidia.com/v1";
+export const NVIDIA_NIM_API_KEY_ENV_KEY = "NVIDIA_NIM_API_KEY";
+export const DEFAULT_NVIDIA_NIM_MODEL = "meta/llama-3.3-70b-instruct";
+
+export function buildNvidiaNimProvidersEnvValue(): string {
+  return JSON.stringify({
+    providers: {
+      nvidia_nim: {
+        name: "NVIDIA NIM",
+        base_url: NVIDIA_NIM_BASE_URL,
+        env_key: NVIDIA_NIM_API_KEY_ENV_KEY,
+        wire_api: "chat",
+      },
+    },
+    model_provider: "nvidia_nim",
+  });
+}
+
+export function buildNvidiaNimEnvBindings(
+  apiKey: string,
+): Record<string, { type: "plain"; value: string }> {
+  return {
+    PAPERCLIP_CODEX_PROVIDERS: { type: "plain", value: buildNvidiaNimProvidersEnvValue() },
+    [NVIDIA_NIM_API_KEY_ENV_KEY]: { type: "plain", value: apiKey },
+  };
+}
 export const CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS = [
   "gpt-6-astra",
   "gpt-5.6-sol",

@@ -7,7 +7,11 @@ import {
   resolvePaperclipRunnerPermissionMode,
   type CreateConfigValues,
 } from "@paperclipai/adapter-utils";
-import { DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX } from "../index.js";
+import {
+  DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
+  DEFAULT_NVIDIA_NIM_MODEL,
+  buildNvidiaNimEnvBindings,
+} from "../index.js";
 
 function parseCommaArgs(value: string): string[] {
   return value
@@ -45,6 +49,10 @@ export function buildCodexLocalConfig(v: CreateConfigValues): Record<string, unk
   ac.timeoutSec = 0;
   ac.graceSec = 15;
   const env = buildAdapterEnvConfig(v.envBindings, v.envVars);
+  if (v.codexModelProvider === "nvidia_nim" && v.nvidiaNimApiKey?.trim()) {
+    Object.assign(env, buildNvidiaNimEnvBindings(v.nvidiaNimApiKey.trim()));
+    ac.model = v.nvidiaNimModel?.trim() || DEFAULT_NVIDIA_NIM_MODEL;
+  }
   if (Object.keys(env).length > 0) ac.env = env;
   ac.search = v.search;
   ac.fastMode = v.fastMode;

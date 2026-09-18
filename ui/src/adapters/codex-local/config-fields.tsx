@@ -12,9 +12,11 @@ import { ChoosePathButton } from "../../components/PathInstructionsModal";
 import { LocalWorkspaceRuntimeFields } from "../local-workspace-runtime-fields";
 import {
   DEFAULT_CODEX_LOCAL_MODEL,
+  DEFAULT_NVIDIA_NIM_MODEL,
   CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS,
   isCodexLocalFastModeSupported,
   isCodexLocalManualModel,
+  buildNvidiaNimEnvBindings,
 } from "@paperclipai/adapter-codex-local";
 import {
   PAPERCLIP_RUNNER_IDLE_TIMEOUT_DEFAULT_MS,
@@ -146,6 +148,46 @@ export function CodexLocalConfigFields({
   const currentModel = isCreate
     ? String(values!.model ?? "")
     : eff("adapterConfig", "model", String(config.model ?? ""));
+  const currentEnv = isCreate
+    ? {}
+    : (eff("adapterConfig", "env", config.env) as Record<string, unknown> | undefined) ?? {};
+  const modelProvider = isCreate
+    ? (values!.codexModelProvider ?? "default")
+    : eff(
+        "adapterConfig",
+        "modelProvider",
+        config.modelProvider === "nvidia_nim" ? "nvidia_nim" : "default",
+      );
+  const nvidiaNimSelected = modelProvider === "nvidia_nim";
+  const nvidiaNimApiKeyEntry = currentEnv.NVIDIA_NIM_API_KEY;
+  const currentNvidiaNimApiKey = isCreate
+    ? (values!.nvidiaNimApiKey ?? "")
+    : typeof nvidiaNimApiKeyEntry === "object" &&
+        nvidiaNimApiKeyEntry !== null &&
+        typeof (nvidiaNimApiKeyEntry as { value?: unknown }).value === "string"
+      ? ((nvidiaNimApiKeyEntry as { value: string }).value)
+      : "";
+  const setNvidiaNimApiKey = (apiKey: string): void => {
+    if (isCreate) {
+      set!({ nvidiaNimApiKey: apiKey });
+      return;
+    }
+    mark("adapterConfig", "env", { ...currentEnv, ...buildNvidiaNimEnvBindings(apiKey) });
+  };
+  const setModelProvider = (provider: "default" | "nvidia_nim"): void => {
+    if (isCreate) {
+      set!({ codexModelProvider: provider });
+      return;
+    }
+    mark("adapterConfig", "modelProvider", provider === "default" ? undefined : provider);
+    if (provider === "default") {
+      // Revert Codex to its normal provider — leaving PAPERCLIP_CODEX_PROVIDERS
+      // behind would keep routing to NVIDIA NIM even though the UI now says
+      // "Default".
+      const { PAPERCLIP_CODEX_PROVIDERS: _unusedProviders, NVIDIA_NIM_API_KEY: _unusedKey, ...rest } = currentEnv;
+      mark("adapterConfig", "env", rest);
+    }
+  };
   const fastModeManualModel = isCodexLocalManualModel(currentModel);
   const fastModeSupported = isCodexLocalFastModeSupported(currentModel);
   const supportedModelsLabel =
@@ -187,6 +229,55 @@ export function CodexLocalConfigFields({
             <option value="acp">ACP</option>
           </select>
         </Field>
+      )}
+      {!runnerManaged && (
+        <Field
+          label="Model provider"
+          hint="NVIDIA NIM routes Codex's file-editing/tool-use loop through an NVIDIA NIM OpenAI-compatible endpoint instead of OpenAI, using your own NIM API key."
+        >
+          <select
+            className={inputClass}
+            value={nvidiaNimSelected ? "nvidia_nim" : "default"}
+            onChange={(e) =>
+              setModelProvider(e.target.value === "nvidia_nim" ? "nvidia_nim" : "default")
+            }
+          >
+            <option value="default">Default (OpenAI)</option>
+            <option value="nvidia_nim">NVIDIA NIM</option>
+          </select>
+        </Field>
+      )}
+      {!runnerManaged && nvidiaNimSelected && (
+        <>
+          <Field
+            label="NVIDIA NIM API key"
+            hint="From build.nvidia.com. Stored in this agent's adapter config, same as any other adapter env var."
+          >
+            <DraftInput
+              value={currentNvidiaNimApiKey}
+              onCommit={(v) => setNvidiaNimApiKey(v.trim())}
+              immediate
+              type="password"
+              className={inputClass}
+              placeholder="nvapi-..."
+            />
+          </Field>
+          <Field
+            label="NVIDIA NIM model"
+            hint="NIM model id, e.g. meta/llama-3.3-70b-instruct. See build.nvidia.com for the full catalog."
+          >
+            <DraftInput
+              value={currentModel || DEFAULT_NVIDIA_NIM_MODEL}
+              onCommit={(v) => {
+                const model = v.trim() || DEFAULT_NVIDIA_NIM_MODEL;
+                isCreate ? set!({ model }) : mark("adapterConfig", "model", model);
+              }}
+              immediate
+              className={inputClass}
+              placeholder={DEFAULT_NVIDIA_NIM_MODEL}
+            />
+          </Field>
+        </>
       )}
       {runnerManaged && (
         <Field configSection="adapter"
